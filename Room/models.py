@@ -28,19 +28,19 @@ class Room(models.Model):
         default=True
     )
     owner = models.ForeignKey(
-        'Room.member',
+        'Room.Member',
         related_name='owner',
         on_delete=models.CASCADE,
     )
     member_a = models.ForeignKey(
-        'Room.member',
+        'Room.Member',
         related_name='member_a',
         on_delete=models.SET_NULL,
         null=True,
         default=None,
     )
     member_b = models.ForeignKey(
-        'Room.member',
+        'Room.Member',
         related_name='member_b',
         on_delete=models.SET_NULL,
         null=True,
@@ -118,7 +118,7 @@ class Room(models.Model):
             print(password)
             room = cls(
                 number=random.randint(1000, 9999),
-                owner=member.join_room(user),
+                owner=Member.join_room(user),
                 password=password
             )
             if room.password != None:
@@ -131,14 +131,32 @@ class Room(models.Model):
         return room
 
     @classmethod
+    def close_room(cls, room):
+        try:
+            member_num = room.member_num
+            if member_num == 3:
+                Member.leave_room(room.member_b)
+                member_num = member_num - 1
+            if member_num == 2:
+                Member.leave_room(room.member_a)
+                member_num = member_num - 1
+            Member.leave_room(room.owner)
+            member_num = member_num - 1
+            room.delete()
+            print("ok")
+        except Exception as err:
+            raise RoomError.CLOSE_ROOM(room.number, debug_message=err)
+
+
+    @classmethod
     def join_room(cls, user, room, password):
         Room.check_password(room, password)
         try:
             member_num = room.member_num
             if member_num == 1:
-                room.member_a = member.join_room(user)
+                room.member_a = Member.join_room(user)
             else:
-                room.member_b = member.join_room(user)
+                room.member_b = Member.join_room(user)
             room.member_num = member_num + 1
             room.save()
         except Exception:
@@ -152,7 +170,7 @@ class RoomP:
     room_password = P('password', '房间密码')
 
 
-class member(models.Model):
+class Member(models.Model):
     user = models.ForeignKey(
         'User.User',
         on_delete=models.CASCADE,
@@ -190,10 +208,20 @@ class member(models.Model):
         user.entered_room()
         return member
 
+    @classmethod
+    def leave_room(cls, user):
+        try:
+            print("######user:" + user.username + "___leave_room")
+            member = Member.objects.get(user=user)
+            user.leave_room()
+            member.delete()
+        except Exception as err:
+            raise RoomError.LEAVE_ROOM(debug_message=err)
+
 
 class action(models.Model):
     member = models.ForeignKey(
-        'Room.member',
+        'Room.Member',
         on_delete=models.CASCADE
     )
     content = models.TextField(

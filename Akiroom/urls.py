@@ -17,5 +17,5 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('api/', include('Akiroom.api_urls')),
+    path('api', include('Akiroom.api_urls')),
 ]
