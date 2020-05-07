@@ -8,6 +8,17 @@ from Room.models import RoomP, Room
 class RoomView(View):
     @staticmethod
     @Auth.require_login
+    def get(request):
+        """GET /api/room/
+
+        获得房间列表
+        """
+        return dict(
+            Rooms=Room.get_room_list()
+        )
+
+    @staticmethod
+    @Auth.require_login
     @Auth.is_enter_room
     @Analyse.r(b=[RoomP.password])
     def post(request):

@@ -213,6 +213,7 @@ class User(models.Model):
         self.save()
 
     def leave_room(self):
+        print("######leave the room")
         self.enter_room = False
         self.save()
 

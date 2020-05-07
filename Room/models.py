@@ -1,5 +1,5 @@
 import datetime
-from random import random
+import random
 
 from SmartDjango import models
 from smartify import P
@@ -60,6 +60,10 @@ class Room(models.Model):
         return self.dictor('pk->rid', 'number', 'password', 'owner', 'member_a', 'member_b', 'member_num', 'speaker',
                            'creat_time')
 
+    def d_room_list(self):
+        return self.dictor('pk->rid', 'number', 'owner', 'member_a', 'member_b', 'member_num',
+                           'creat_time')
+
     def _readable_owner(self):
         if self.owner:
             return self.owner.d()
@@ -98,21 +102,26 @@ class Room(models.Model):
         return room
 
     @classmethod
+    def get_room_list(cls):
+        Rooms = []
+        for room in Room.objects.filter(create_time__lte=datetime.datetime.now()):
+            Rooms.append(room.d_room_list())
+        return Rooms
+
+    @classmethod
     def creat_room(cls, user, password):
         try:
-            # if password == "" or password == None:
-            #     password = None
+            print(password)
             room = cls(
                 number=random.randint(1000, 9999),
-                password=password,
                 owner=member.join_room(user),
-                create_time=datetime.datetime.now()
+                password=password
             )
             room.save()
 
-        except Exception:
+        except Exception as err:
             user.leave_room()
-            raise RoomError.Create_ROOM
+            raise RoomError.Create_ROOM(debug_message=err)
         return room
 
     @classmethod
@@ -164,6 +173,7 @@ class member(models.Model):
 
     @classmethod
     def join_room(cls, user):
+        print("######user:" + user.username + "___join_room")
         try:
             member = cls(
                 user=user,
