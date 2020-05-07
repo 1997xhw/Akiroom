@@ -2,6 +2,7 @@ import datetime
 from random import random
 
 from SmartDjango import models
+from smartify import P
 
 from Base.room import RoomError
 
@@ -75,6 +76,28 @@ class Room(models.Model):
         return self.create_time.timestamp()
 
     @classmethod
+    def check_password(cls, room, password):
+        """验证房间密码是否正确"""
+        if room.password != None:
+            if room.password != password:
+                raise RoomError.JOIN_ROOM_PASSWORD(room.number)
+
+    @staticmethod
+    def get_room_by_pk(pk):
+        try:
+            return Room.objects.get(pk=pk)
+        except Exception:
+            raise RoomError.GET_ROOM_BY_PK(pk)
+
+    @staticmethod
+    def get_room_by_number(number):
+        try:
+            room = Room.objects.get(number=number)
+        except Room.DoesNotExist:
+            raise RoomError.GET_ROOM_BY_NUMBER(number)
+        return room
+
+    @classmethod
     def creat_room(cls, user, password):
         try:
             # if password == "" or password == None:
@@ -92,9 +115,26 @@ class Room(models.Model):
             raise RoomError.Create_ROOM
         return room
 
+    @classmethod
+    def join_room(cls, user, room, password):
+        Room.check_password(room, password)
+        try:
+            member_num = room.member_num
+            if member_num == 1:
+                room.member_a = member.join_room(user)
+            else:
+                room.member_b = member.join_room(user)
+            room.member_num = member_num + 1
+            room.save()
+        except Exception:
+            raise RoomError.MEMBER_JOIN_ROOM(user.username, room.number)
+        return room
+
 
 class RoomP:
-    password, = Room.get_params('password')
+    password, number, = Room.get_params('password', 'number')
+    room_number = P('number', '房间号', 'room').process(Room.get_room_by_number)
+    room_password = P('password', '房间密码')
 
 
 class member(models.Model):
