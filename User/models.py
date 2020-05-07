@@ -3,6 +3,7 @@ import string
 from SmartDjango import models, E
 from django.utils.crypto import get_random_string
 
+
 @E.register()
 class UserError:
     PASSWORD_CHANGED = E("密码已改变，需要重新获取token")
@@ -207,6 +208,14 @@ class User(models.Model):
             raise UserError.NOT_FOUND_USER
         return user
 
+    def entered_room(self):
+        self.enter_room = True
+        self.save()
+
+    def leave_room(self):
+        self.enter_room = False
+        self.save()
+
     @classmethod
     def authenticate(cls, username, password):
         """验证用户名和密码是否匹配"""
@@ -234,9 +243,8 @@ class User(models.Model):
             else:
                 return False
 
-
     def d(self):
-        return self.dictor('pk->uid', 'username', 'inviter')
+        return self.dictor('pk->uid', 'username', 'inviter', 'enter_room')
 
     def d_invite(self):
         return self.dictor('pk->id', 'username')
@@ -244,6 +252,7 @@ class User(models.Model):
     def _readable_inviter(self):
         if self.inviter:
             return self.inviter.d_base()
+
     def d_base(self):
         return self.dictor('pk->id', 'username')
 
