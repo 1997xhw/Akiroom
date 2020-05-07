@@ -12,7 +12,7 @@ class AuthError:
     TOKEN_MISS_PARAM = E("认证口令缺少参数{0}", hc=Hc.Forbidden)
     REQUIRE_ROOT = E("需要root权限")
     REQUIRE_INVITER = E("需要邀请人权限")
-    ENTERED_ROOM = E("当前用户已进入房间")
+    ENTERED_ROOM = E("当前用户({0})已进入房间")
 
 class Auth:
     @staticmethod
@@ -49,7 +49,7 @@ class Auth:
         @wraps(func)
         def wrapper(r, *args, **kwargs):
             if r.user.enter_room:
-                raise AuthError.ENTERED_ROOM
+                raise AuthError.ENTERED_ROOM(r.user.username)
             return func(r, *args, **kwargs)
         return wrapper
 

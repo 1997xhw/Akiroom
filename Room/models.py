@@ -24,6 +24,9 @@ class Room(models.Model):
         null=True,
         default=None
     )
+    is_public = models.BooleanField(
+        default=True
+    )
     owner = models.ForeignKey(
         'Room.member',
         related_name='owner',
@@ -57,11 +60,12 @@ class Room(models.Model):
     )
 
     def d(self):
-        return self.dictor('pk->rid', 'number', 'password', 'owner', 'member_a', 'member_b', 'member_num', 'speaker',
+        return self.dictor('pk->rid', 'is_public', 'number', 'password', 'owner', 'member_a', 'member_b', 'member_num',
+                           'speaker',
                            'creat_time')
 
     def d_room_list(self):
-        return self.dictor('pk->rid', 'number', 'owner', 'member_a', 'member_b', 'member_num',
+        return self.dictor('pk->rid', 'number', 'is_public', 'owner', 'member_a', 'member_b', 'member_num',
                            'creat_time')
 
     def _readable_owner(self):
@@ -82,7 +86,7 @@ class Room(models.Model):
     @classmethod
     def check_password(cls, room, password):
         """验证房间密码是否正确"""
-        if room.password != None:
+        if not (room.is_public):
             if room.password != password:
                 raise RoomError.JOIN_ROOM_PASSWORD(room.number)
 
@@ -117,6 +121,8 @@ class Room(models.Model):
                 owner=member.join_room(user),
                 password=password
             )
+            if room.password != None:
+                room.is_public = False
             room.save()
 
         except Exception as err:
