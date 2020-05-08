@@ -30,7 +30,8 @@ class Room(models.Model):
     owner = models.ForeignKey(
         'Room.Member',
         related_name='owner',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
     )
     member_a = models.ForeignKey(
         'Room.Member',
@@ -50,6 +51,11 @@ class Room(models.Model):
     member_num = models.IntegerField(
         default=1,
     )
+
+    status = models.BooleanField(
+        default=False
+    )
+
     # 轮到说话的人（1、2、3）（1默认房主）
     speaker = models.IntegerField(
         default=1,
@@ -86,7 +92,7 @@ class Room(models.Model):
     @classmethod
     def check_password(cls, room, password):
         """验证房间密码是否正确"""
-        if not (room.is_public):
+        if not room.is_public:
             if room.password != password:
                 raise RoomError.JOIN_ROOM_PASSWORD(room.number)
 
@@ -121,7 +127,7 @@ class Room(models.Model):
                 owner=Member.join_room(user),
                 password=password
             )
-            if room.password != None:
+            if room.password is not None:
                 room.is_public = False
             room.save()
 
@@ -133,24 +139,22 @@ class Room(models.Model):
     @classmethod
     def close_room(cls, room):
         try:
-            member_num = room.member_num
-            if member_num == 3:
-                Member.leave_room(room.member_b)
-                member_num = member_num - 1
-            if member_num == 2:
+            if room.member_a is not None:
                 Member.leave_room(room.member_a)
-                member_num = member_num - 1
-            Member.leave_room(room.owner)
-            member_num = member_num - 1
+            if room.member_b is not None:
+                Member.leave_room(room.member_b)
+            if room.owner is not None:
+                Member.leave_room(room.owner)
             room.delete()
-            print("ok")
+            print("delete======ok")
         except Exception as err:
             raise RoomError.CLOSE_ROOM(room.number, debug_message=err)
-
 
     @classmethod
     def join_room(cls, user, room, password):
         Room.check_password(room, password)
+        if room.member_num == 3:
+            raise RoomError.ROOM_FULL(room.number)
         try:
             member_num = room.member_num
             if member_num == 1:
@@ -161,6 +165,51 @@ class Room(models.Model):
             room.save()
         except Exception:
             raise RoomError.MEMBER_JOIN_ROOM(user.username, room.number)
+        return room
+
+    @classmethod
+    def change_position(cls, room):
+        if room.owner is None:
+            if room.member_b is not None:
+                print("b->owner")
+                room.owner = room.member_b
+                room.member_b = None
+
+            elif room.member_a is not None:
+                print("a->owner")
+                room.owner = room.member_a
+                room.member_a = None
+        if room.member_a is None and room.member_b is not None:
+            print("b->a")
+            room.member_a = room.member_b
+            room.member_b = None
+        room.member_num = room.member_num - 1
+        print(room.member_num)
+        room.save()
+        if room.member_num == 0:
+            cls.close_room(room)
+
+    def get_room_member(self):
+        return [self.owner, self.member_a, self.member_b]
+
+    @staticmethod
+    def room_ready_status(user, room, ready):
+        if room.status:
+            raise RoomError.ROOM_NOT_UNREADY(room.number)
+        try:
+            for member in room.get_room_status:
+                flag = 0
+                if member.user == user:
+                    member.is_ready = ready
+                    member.save()
+            return room
+        except Exception:
+            raise RoomError.ROOM_CHANGE_STATUS(room.number, user.username)
+
+    @staticmethod
+    def room_begin(room):
+        room.status = True
+        room.save()
         return room
 
 

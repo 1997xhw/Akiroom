@@ -1,6 +1,7 @@
 from SmartDjango import Analyse
 from django.views import View
 from smartify import P
+
 from Base.auth import Auth
 from Base.room import Room as Roomm
 from Room.models import RoomP, Room, Member
@@ -58,9 +59,46 @@ class RoomMemberView(View):
     @Auth.require_login
     @Analyse.r(b=[RoomP.room_number])
     @Roomm.is_room_member
+    def post(request):
+        """POST /api/room/member
+        获取房间信息
+        """
+        return request.d.room.d()
+
+    @staticmethod
+    @Auth.require_login
+    @Analyse.r(b=[RoomP.room_number])
+    @Roomm.is_room_member
     def delete(request):
         """DELETE /api/room/member
 
         退出房间
         """
+        room_number = request.d.room.number
         Member.leave_room(request.user)
+        Room.change_position(Room.get_room_by_number(room_number))
+
+    @staticmethod
+    @Auth.require_login
+    @Analyse.r(b=[RoomP.room_number, P('ready', '是否准备').default(True).process(bool)])
+    @Roomm.is_room_member
+    def put(request):
+        """PUT /api/room/member
+
+        房间状态操作（开始游戏（两人准备）/准备）
+        """
+        return Room.room_ready_status(**request.d.dict()).d()
+
+
+class RoomMemberOwnerView(View):
+    @staticmethod
+    @Auth.require_login
+    @Analyse.r(b=[RoomP.room_number])
+    @Roomm.is_room_onwer
+    @Roomm.room_status
+    def put(request):
+        """PUT /api/room/member/owner
+
+        房主点开始发言
+        """
+        return Room.room_begin('room').d()
