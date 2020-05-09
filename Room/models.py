@@ -68,11 +68,14 @@ class Room(models.Model):
     def d(self):
         return self.dictor('pk->rid', 'is_public', 'number', 'password', 'owner', 'member_a', 'member_b', 'member_num',
                            'speaker',
-                           'creat_time')
+                           'create_time')
 
     def d_room_list(self):
         return self.dictor('pk->rid', 'number', 'is_public', 'owner', 'member_a', 'member_b', 'member_num',
-                           'creat_time')
+                           'create_time')
+
+    def d_number(self):
+        return self.dictor('number')
 
     def _readable_owner(self):
         if self.owner:
@@ -86,7 +89,7 @@ class Room(models.Model):
         if self.member_b:
             return self.member_b.d()
 
-    def _readable_creat_time(self):
+    def _readable_create_time(self):
         return self.create_time.timestamp()
 
     @classmethod
@@ -198,7 +201,6 @@ class Room(models.Model):
             raise RoomError.ROOM_NOT_UNREADY(room.number)
         try:
             for member in room.get_room_status:
-                flag = 0
                 if member.user == user:
                     member.is_ready = ready
                     member.save()
@@ -268,10 +270,14 @@ class Member(models.Model):
             raise RoomError.LEAVE_ROOM(debug_message=err)
 
 
-class action(models.Model):
+class Actions(models.Model):
     member = models.ForeignKey(
         'Room.Member',
         on_delete=models.CASCADE
+    )
+    room = models.ForeignKey(
+        'Room.Room',
+        on_delete=models.CASCADE,
     )
     content = models.TextField(
         default=None,
@@ -280,3 +286,29 @@ class action(models.Model):
     create_time = models.DateTimeField(
         auto_now_add=True
     )
+
+    def d(self):
+        return self.dictor('pk->aid', 'member', 'room', 'content', 'create_time')
+
+    def _readable_member(self):
+        return self.member.d()
+
+    def _readable_room(self):
+        return self.room.d_number()
+
+    def _readable_create_time(self):
+        return self.create_time.timestamp()
+
+    @staticmethod
+    def get_actions(room):
+        actions = []
+        for action in Actions.objects.filter(room=room).order_by("-create_time"):
+            actions.append(action.d())
+        return actions
+
+    def create_action(self, user, content, room):
+        pass
+
+
+class ActionP:
+    content = Actions.get_param('content')

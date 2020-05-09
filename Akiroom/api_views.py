@@ -4,7 +4,7 @@ from smartify import P
 
 from Base.auth import Auth
 from Base.room import Room as Roomm
-from Room.models import RoomP, Room, Member
+from Room.models import RoomP, Room, Member, Actions, ActionP
 
 
 class RoomView(View):
@@ -42,35 +42,35 @@ class RoomView(View):
         """
         return Room.join_room(request.user, **request.d.dict()).d()
 
-    @staticmethod
-    @Auth.require_login
-    @Analyse.r(b=[RoomP.room_number])
-    @Roomm.is_room_onwer
-    def delete(request):
-        """DELETE /api/room
-
-        关闭房间
-        """
-        Room.close_room(**request.d.dict('room'))
+    # @staticmethod
+    # @Auth.require_login
+    # @Analyse.r(b=[RoomP.room_number])
+    # @Roomm.is_room_onwer
+    # def delete(request):
+    #     """DELETE /api/room
+    #
+    #     关闭房间
+    #     """
+    #     Room.close_room(**request.d.dict('room'))
 
 
 class RoomMemberView(View):
     @staticmethod
     @Auth.require_login
-    @Analyse.r(b=[RoomP.room_number])
+    @Analyse.r(a=[RoomP.room_number])
     @Roomm.is_room_member
     def post(request):
-        """POST /api/room/member
+        """POST /api/room/member/@<int:number>
         获取房间信息
         """
         return request.d.room.d()
 
     @staticmethod
     @Auth.require_login
-    @Analyse.r(b=[RoomP.room_number])
+    @Analyse.r(a=[RoomP.room_number])
     @Roomm.is_room_member
     def delete(request):
-        """DELETE /api/room/member
+        """DELETE /api/room/member/@<int:number>
 
         退出房间
         """
@@ -80,10 +80,10 @@ class RoomMemberView(View):
 
     @staticmethod
     @Auth.require_login
-    @Analyse.r(b=[RoomP.room_number, P('ready', '是否准备').default(True).process(bool)])
+    @Analyse.r(a=[RoomP.room_number], b=[P('ready', '是否准备').default(True).process(bool)])
     @Roomm.is_room_member
     def put(request):
-        """PUT /api/room/member
+        """PUT /api/room/member/@<int:number>
 
         房间状态操作（开始游戏（两人准备）/准备）
         """
@@ -93,12 +93,39 @@ class RoomMemberView(View):
 class RoomMemberOwnerView(View):
     @staticmethod
     @Auth.require_login
-    @Analyse.r(b=[RoomP.room_number])
+    @Analyse.r(a=[RoomP.room_number])
     @Roomm.is_room_onwer
     @Roomm.room_status
     def put(request):
-        """PUT /api/room/member/owner
+        """PUT /api/room/member/owner/@<int:number>
 
         房主点开始发言
         """
         return Room.room_begin('room').d()
+
+    @staticmethod
+    @Auth.require_login
+    @Analyse.r(a=[RoomP.room_number])
+    @Roomm.is_room_onwer
+    def delete(request):
+        """DELETE /api/room/member/owner/@<int:number>
+
+        关闭房间
+        """
+        Room.close_room(**request.d.dict('room'))
+
+
+class RoomActionView(View):
+    @staticmethod
+    @Auth.require_login
+    @Analyse.r(a=[RoomP.room_number])
+    @Roomm.is_room_member
+    def get(request):
+        return Actions.get_actions(**request.d.dict('room'))
+
+    @staticmethod
+    @Auth.require_login
+    @Analyse.r(a=[RoomP.room_number], b=[ActionP.content])
+    @Roomm.is_room_member
+    def post(request):
+        return Actions.create_action(request.user, **request.d.dict('content', 'room'))
