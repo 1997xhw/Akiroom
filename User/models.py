@@ -250,6 +250,9 @@ class User(models.Model):
     def d_invite(self):
         return self.dictor('pk->id', 'username')
 
+    def d_username(self):
+        return self.dictor('username')
+
     def _readable_inviter(self):
         if self.inviter:
             return self.inviter.d_base()

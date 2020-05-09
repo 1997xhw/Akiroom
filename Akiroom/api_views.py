@@ -87,26 +87,26 @@ class RoomMemberView(View):
 
         房间状态操作（开始游戏（两人准备）/准备）
         """
-        return Room.room_ready_status(**request.d.dict()).d()
+        return Room.room_ready_status(request.user, **request.d.dict('room', 'ready')).d()
 
 
 class RoomMemberOwnerView(View):
     @staticmethod
     @Auth.require_login
     @Analyse.r(a=[RoomP.room_number])
-    @Roomm.is_room_onwer
+    @Roomm.is_room_owner
     @Roomm.room_status
     def put(request):
         """PUT /api/room/member/owner/@<int:number>
 
         房主点开始发言
         """
-        return Room.room_begin('room').d()
+        return Room.room_begin(**request.d.dict('room')).d()
 
     @staticmethod
     @Auth.require_login
     @Analyse.r(a=[RoomP.room_number])
-    @Roomm.is_room_onwer
+    @Roomm.is_room_owner
     def delete(request):
         """DELETE /api/room/member/owner/@<int:number>
 
@@ -121,11 +121,20 @@ class RoomActionView(View):
     @Analyse.r(a=[RoomP.room_number])
     @Roomm.is_room_member
     def get(request):
+        """POST /api/room/action/<int:number>
+
+        获取发言列表
+        """
         return Actions.get_actions(**request.d.dict('room'))
 
     @staticmethod
     @Auth.require_login
     @Analyse.r(a=[RoomP.room_number], b=[ActionP.content])
     @Roomm.is_room_member
+    @Roomm.member_can_act
     def post(request):
-        return Actions.create_action(request.user, **request.d.dict('content', 'room'))
+        """POST /api/room/action/<int:number>
+
+        发言
+        """
+        return Actions.create_action(request.member, **request.d.dict('content', 'room'))

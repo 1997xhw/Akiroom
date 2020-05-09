@@ -67,7 +67,7 @@ class Room(models.Model):
 
     def d(self):
         return self.dictor('pk->rid', 'is_public', 'number', 'password', 'owner', 'member_a', 'member_b', 'member_num',
-                           'speaker',
+                           'speaker', 'status',
                            'create_time')
 
     def d_room_list(self):
@@ -200,19 +200,29 @@ class Room(models.Model):
         if room.status:
             raise RoomError.ROOM_NOT_UNREADY(room.number)
         try:
-            for member in room.get_room_status:
+            print(ready)
+            for member in room.get_room_member():
                 if member.user == user:
                     member.is_ready = ready
                     member.save()
             return room
-        except Exception:
-            raise RoomError.ROOM_CHANGE_STATUS(room.number, user.username)
+        except Exception as err:
+            raise RoomError.ROOM_CHANGE_STATUS(room.number, user.username, debug_message=err)
 
     @staticmethod
     def room_begin(room):
         room.status = True
         room.save()
         return room
+
+    def room_change_speaker(self):
+        try:
+            self.speaker = (self.speaker + 1)
+            if self.speaker == 4:
+                self.speaker = 1
+            self.save()
+        except Exception:
+            raise RoomError.ROOM_CHANGE_SPEAKER(self.number)
 
 
 class RoomP:
@@ -233,6 +243,9 @@ class Member(models.Model):
 
     def d(self):
         return self.dictor('pk->mid', 'user', 'is_ready')
+
+    def d_username(self):
+        return self.user.d_username()
 
     def _readable_user(self):
         if self.user:
@@ -291,7 +304,7 @@ class Actions(models.Model):
         return self.dictor('pk->aid', 'member', 'room', 'content', 'create_time')
 
     def _readable_member(self):
-        return self.member.d()
+        return self.member.d_username()
 
     def _readable_room(self):
         return self.room.d_number()
@@ -306,8 +319,22 @@ class Actions(models.Model):
             actions.append(action.d())
         return actions
 
-    def create_action(self, user, content, room):
-        pass
+    @classmethod
+    def create_action(cls, member, content, room):
+        if content:
+            try:
+                action = cls(
+                    member=member,
+                    room=room,
+                    content=content
+                )
+                action.save()
+            except Exception as err:
+                raise RoomError.CREATE_ACTION(room.number, member.user.username, debug_message=err)
+        room.room_change_speaker()
+        return dict(
+            next_speaker=room.speaker
+        )
 
 
 class ActionP:
