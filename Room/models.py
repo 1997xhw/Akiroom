@@ -241,6 +241,7 @@ class Member(models.Model):
         default=False
     )
 
+
     def d(self):
         return self.dictor('pk->mid', 'user', 'is_ready')
 

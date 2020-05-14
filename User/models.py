@@ -113,7 +113,7 @@ class User(models.Model):
 
             cls.objects.get(invite_code=invite_code)
         except cls.DoesNotExist:
-            raise UserError.NOT_FOUND_CODE
+            raise UserError.NOT_FOUND_COD
         else:
             user = User.objects.get(invite_code=invite_code)
             print(user.username)

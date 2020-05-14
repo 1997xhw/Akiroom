@@ -23,6 +23,7 @@ class RoomError:
     CREATE_ACTION = E("房间({0})内用户({1})发言失败")
     ROOM_CHANGE_SPEAKER = E("房间({0})切换发言者失败")
 
+
 class Room:
     @classmethod
     def is_room_owner(cls, func):
@@ -63,8 +64,9 @@ class Room:
         def wrapper(r, *args, **kwargs):
             if not r.d.room.status:
                 raise RoomError.ROOM_STATUS_FALSE(r.room.number)
-            if r.d.room.get_room_member()[r.d.room.speaker-1].user == r.user:
-                r.member = r.d.room.get_room_member()[r.d.room.speaker-1]
+            if r.d.room.get_room_member()[r.d.room.speaker - 1].user == r.user:
+                r.member = r.d.room.get_room_member()[r.d.room.speaker - 1]
                 return func(r, *args, **kwargs)
             raise RoomError.MEMBER_IS_NOT_SPEAKER(r.user.username)
+
         return wrapper
